@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三平方の定理 ドローンシミュレーター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* アニメーション用のクラス */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+  <div class="flex flex-col md:flex-row min-h-screen">
+    <!-- サイドバー（操作パネル） -->
+    <div class="w-full md:w-[350px] bg-white p-6 shadow-xl z-10 flex flex-col md:h-screen overflow-y-auto border-r border-gray-200">
+      <div class="mb-6 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 fill-blue-100"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>
+        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">ドローン教材</h1>
+      </div>
+      
+      <!-- モード切替タブ -->
+      <div class="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
+        <button id="btn-mode-2d" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-blue-600 shadow-sm border border-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+          平面 (2D)
+        </button>
+        <button id="btn-mode-3d" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          立体 (3D)
+        </button>
+      </div>
+
+      <div class="space-y-5 flex-grow">
+        <!-- スライダーエリア -->
+        <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 space-y-4">
+          <div>
+            <label class="flex justify-between items-center text-gray-700 font-bold mb-2">
+              <span>よこ（横）</span>
+              <span id="val-x-display" class="text-blue-600 text-xl bg-white px-2 py-1 rounded shadow-sm">3</span>
+            </label>
+            <input type="range" id="slider-x" min="1" max="3" value="3" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+
+          <div>
+            <label class="flex justify-between items-center text-gray-700 font-bold mb-2">
+              <span id="label-y">たて（縦）</span>
+              <span id="val-y-display" class="text-blue-600 text-xl bg-white px-2 py-1 rounded shadow-sm">3</span>
+            </label>
+            <input type="range" id="slider-y" min="1" max="3" value="3" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+
+          <div id="z-container" class="pt-2 border-t border-blue-100 hidden">
+            <label class="flex justify-between items-center text-gray-700 font-bold mb-2">
+              <span>たかさ（高さ）</span>
+              <span id="val-z-display" class="text-blue-600 text-xl bg-white px-2 py-1 rounded shadow-sm">2</span>
+            </label>
+            <input type="range" id="slider-z" min="1" max="3" value="2" class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+        </div>
+
+        <!-- ボタンエリア -->
+        <div class="flex gap-3">
+          <button id="btn-start" class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-bold py-3 px-4 rounded-2xl flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            じっこう
+          </button>
+          <button id="btn-reset" class="bg-white border-2 border-gray-200 hover:bg-gray-50 text-gray-600 font-bold py-3 px-4 rounded-2xl flex items-center justify-center transition-all shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        </div>
+
+        <!-- 解説パネル -->
+        <div class="bg-yellow-50/80 p-5 rounded-2xl border border-yellow-200 text-gray-800 shadow-sm">
+          <h3 class="font-bold text-md mb-2 flex items-center text-yellow-800">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            計算してみよう！
+          </h3>
+          
+          <div id="formula-text" class="bg-white p-2 rounded-xl text-center font-bold text-gray-700 shadow-sm mb-3 border border-gray-100 text-sm">
+            ななめ² = 横² + 縦²
+          </div>
+          
+          <div class="text-sm space-y-1.5 mb-3 bg-white/50 p-3 rounded-lg">
+            <div class="flex justify-between">
+              <span id="calc-x-label">横×横 (3×3)</span><span id="calc-x-val" class="font-bold">9</span>
+            </div>
+            <div class="flex justify-between">
+              <span id="calc-y-label">縦×縦 (3×3)</span><span id="calc-y-val" class="font-bold">9</span>
+            </div>
+            <div id="calc-z-container" class="flex justify-between hidden">
+              <span id="calc-z-label">高×高 (2×2)</span><span id="calc-z-val" class="font-bold">4</span>
+            </div>
+            <div class="border-t border-gray-300 pt-1.5 flex justify-between font-bold mt-1">
+              <span>合計（ななめ²）</span><span id="calc-sum" class="text-red-600">18</span>
+            </div>
+          </div>
+
+          <div class="bg-red-50 text-red-800 p-3 rounded-xl text-center font-bold text-xl border-2 border-red-200 shadow-inner">
+            <div id="result-formula">ななめ = √18</div>
+            <div id="result-detail" class="text-sm mt-0.5 text-red-600 font-normal">(約 4.243)</div>
+          </div>
+          
+          <!-- ゴール時の追加解説 -->
+          <div id="goal-message" class="mt-3 overflow-hidden transition-all duration-500 ease-in-out max-h-0 opacity-0">
+            <div class="bg-white p-3 rounded-xl border border-red-200 shadow-sm">
+              <p class="text-sm text-gray-700 leading-relaxed">
+                <span id="goal-drone-count">3</span>つのドローンは同時にゴールしたね！<br/>
+                赤色の<b class="text-red-600"><span id="goal-drone-name">3号機</span></b>は一番長い距離を同じ時間で飛んだから、<b class="text-red-600">一番速いスピード</b>で移動していたんだよ！
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- メインキャンバス（グラフ描画エリア） -->
+    <div class="flex-1 bg-slate-100 relative flex justify-center items-center p-4 md:p-8 overflow-hidden">
+      <div class="w-full max-w-4xl aspect-square bg-white border border-gray-200 rounded-3xl shadow-xl overflow-hidden relative">
+        <svg id="canvas-svg" viewBox="0 0 600 600" class="w-full h-full drop-shadow-sm">
+          <!-- SVG content will be generated by JS -->
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 状態管理
+    let state = {
+      mode: '2d',
+      xVal: 3,
+      yVal: 3,
+      zVal: 2,
+      isPlaying: false,
+      progress: 0,
+      maxGrid: 3,
+      duration: 3000
+    };
+
+    let animationRef = null;
+    let startTimeRef = null;
+
+    // DOM要素
+    const els = {
+      btnMode2d: document.getElementById('btn-mode-2d'),
+      btnMode3d: document.getElementById('btn-mode-3d'),
+      sliderX: document.getElementById('slider-x'),
+      sliderY: document.getElementById('slider-y'),
+      sliderZ: document.getElementById('slider-z'),
+      valXDisplay: document.getElementById('val-x-display'),
+      valYDisplay: document.getElementById('val-y-display'),
+      valZDisplay: document.getElementById('val-z-display'),
+      labelY: document.getElementById('label-y'),
+      zContainer: document.getElementById('z-container'),
+      btnStart: document.getElementById('btn-start'),
+      btnReset: document.getElementById('btn-reset'),
+      formulaText: document.getElementById('formula-text'),
+      calcXLabel: document.getElementById('calc-x-label'),
+      calcXVal: document.getElementById('calc-x-val'),
+      calcYLabel: document.getElementById('calc-y-label'),
+      calcYVal: document.getElementById('calc-y-val'),
+      calcZContainer: document.getElementById('calc-z-container'),
+      calcZLabel: document.getElementById('calc-z-label'),
+      calcZVal: document.getElementById('calc-z-val'),
+      calcSum: document.getElementById('calc-sum'),
+      resultFormula: document.getElementById('result-formula'),
+      resultDetail: document.getElementById('result-detail'),
+      goalMessage: document.getElementById('goal-message'),
+      goalDroneCount: document.getElementById('goal-drone-count'),
+      goalDroneName: document.getElementById('goal-drone-name'),
+      canvasSvg: document.getElementById('canvas-svg')
+    };
+
+    // 初期化
+    function init() {
+      els.btnMode2d.addEventListener('click', () => setMode('2d'));
+      els.btnMode3d.addEventListener('click', () => setMode('3d'));
+      
+      els.sliderX.addEventListener('input', (e) => { state.xVal = parseInt(e.target.value); resetAnimation(); updateUI(); });
+      els.sliderY.addEventListener('input', (e) => { state.yVal = parseInt(e.target.value); resetAnimation(); updateUI(); });
+      els.sliderZ.addEventListener('input', (e) => { state.zVal = parseInt(e.target.value); resetAnimation(); updateUI(); });
+      
+      els.btnStart.addEventListener('click', startAnimation);
+      els.btnReset.addEventListener('click', resetAnimation);
+
+      updateUI();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      if (mode === '2d') {
+        state.xVal = 3;
+        state.yVal = 3;
+        els.btnMode2d.className = "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-blue-600 shadow-sm border border-gray-200";
+        els.btnMode3d.className = "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500 hover:text-gray-700";
+      } else {
+        state.xVal = 2;
+        state.yVal = 2;
+        state.zVal = 1;
+        els.btnMode3d.className = "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all bg-white text-blue-600 shadow-sm border border-gray-200";
+        els.btnMode2d.className = "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all text-gray-500 hover:text-gray-700";
+      }
+      els.sliderX.value = state.xVal;
+      els.sliderY.value = state.yVal;
+      els.sliderZ.value = state.zVal;
+      resetAnimation();
+      updateUI();
+    }
+
+    function startAnimation() {
+      if (state.isPlaying) return;
+      state.isPlaying = true;
+      state.progress = 0;
+      startTimeRef = performance.now();
+      updateInputsState();
+      animationRef = requestAnimationFrame(updateAnimation);
+    }
+
+    function updateAnimation(timestamp) {
+      if (!startTimeRef) startTimeRef = timestamp;
+      const elapsed = timestamp - startTimeRef;
+      let newProgress = elapsed / state.duration;
+      
+      if (newProgress >= 1) {
+        newProgress = 1;
+        state.progress = newProgress;
+        state.isPlaying = false;
+        updateInputsState();
+        updateUI(); // 最終状態の描画とゴールメッセージ表示
+      } else {
+        state.progress = newProgress;
+        updateCanvas();
+        animationRef = requestAnimationFrame(updateAnimation);
+      }
+    }
+
+    function resetAnimation() {
+      if (animationRef) cancelAnimationFrame(animationRef);
+      state.isPlaying = false;
+      state.progress = 0;
+      startTimeRef = null;
+      updateInputsState();
+      updateUI();
+    }
+
+    function updateInputsState() {
+      els.sliderX.disabled = state.isPlaying;
+      els.sliderY.disabled = state.isPlaying;
+      els.sliderZ.disabled = state.isPlaying;
+      els.btnStart.disabled = state.isPlaying;
+    }
+
+    function updateUI() {
+      // 数値表示の更新
+      els.valXDisplay.textContent = state.xVal;
+      els.valYDisplay.textContent = state.yVal;
+      els.valZDisplay.textContent = state.zVal;
+
+      // 計算
+      const squaredSum = state.mode === '2d' 
+        ? state.xVal * state.xVal + state.yVal * state.yVal 
+        : state.xVal * state.xVal + state.yVal * state.yVal + state.zVal * state.zVal;
+      const hypotenuse = Math.sqrt(squaredSum);
+      const isInteger = Number.isInteger(hypotenuse);
+      const displayHypotenuse = isInteger ? hypotenuse : hypotenuse.toFixed(3);
+
+      // モードに応じたUI切り替え
+      if (state.mode === '2d') {
+        els.labelY.textContent = 'たて（縦）';
+        els.zContainer.classList.add('hidden');
+        els.formulaText.textContent = 'ななめ² = 横² + 縦²';
+        els.calcYLabel.textContent = `縦×縦 (${state.yVal}×${state.yVal})`;
+        els.calcZContainer.classList.add('hidden');
+        els.calcZContainer.classList.remove('flex');
+        els.goalDroneCount.textContent = '3';
+        els.goalDroneName.textContent = '3号機';
+      } else {
+        els.labelY.textContent = 'おくゆき（奥行）';
+        els.zContainer.classList.remove('hidden');
+        els.formulaText.textContent = 'ななめ² = 横² + 奥行² + 高さ²';
+        els.calcYLabel.textContent = `奥×奥 (${state.yVal}×${state.yVal})`;
+        els.calcZContainer.classList.remove('hidden');
+        els.calcZContainer.classList.add('flex');
+        els.calcZLabel.textContent = `高×高 (${state.zVal}×${state.zVal})`;
+        els.calcZVal.textContent = state.zVal * state.zVal;
+        els.goalDroneCount.textContent = '4';
+        els.goalDroneName.textContent = '4号機';
+      }
+
+      els.calcXLabel.textContent = `横×横 (${state.xVal}×${state.xVal})`;
+      els.calcXVal.textContent = state.xVal * state.xVal;
+      els.calcYVal.textContent = state.yVal * state.yVal;
+      els.calcSum.textContent = squaredSum;
+
+      els.resultFormula.textContent = `ななめ = √${squaredSum}`;
+      if (isInteger) {
+        els.resultDetail.className = "text-lg mt-0.5";
+        els.resultDetail.textContent = `= ${displayHypotenuse}`;
+      } else {
+        els.resultDetail.className = "text-sm mt-0.5 text-red-600 font-normal";
+        els.resultDetail.textContent = `(約 ${displayHypotenuse})`;
+      }
+
+      // ゴールメッセージの表示制御
+      if (state.progress === 1) {
+        els.goalMessage.classList.remove('max-h-0', 'opacity-0');
+        els.goalMessage.classList.add('max-h-48', 'opacity-100');
+      } else {
+        els.goalMessage.classList.add('max-h-0', 'opacity-0');
+        els.goalMessage.classList.remove('max-h-48', 'opacity-100');
+      }
+
+      updateCanvas();
+    }
+
+    function updateCanvas() {
+      const { mode, xVal, yVal, zVal, progress, maxGrid } = state;
+      const viewWidth = 600;
+      const viewHeight = 600;
+
+      let svgContent = `
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+          </marker>
+      `;
+
+      if (mode === '2d') {
+        const svgPaddingX = 60;
+        const svgPaddingY = 60;
+        const plotWidth = viewWidth - svgPaddingX * 2;
+        const plotHeight = viewHeight - svgPaddingY * 2;
+        const gridW = plotWidth / maxGrid;
+        const gridH = plotHeight / maxGrid;
+
+        const getSvgX = (x) => svgPaddingX + (x / maxGrid) * plotWidth;
+        const getSvgY = (y) => viewHeight - svgPaddingY - (y / maxGrid) * plotHeight;
+
+        const dx2d = getSvgX(xVal) - getSvgX(0);
+        const dy2d = getSvgY(yVal) - getSvgY(0);
+        const angle2d = (Math.atan2(dy2d, dx2d) * 180) / Math.PI;
+        const squaredSum = xVal * xVal + yVal * yVal;
+
+        svgContent += `
+          <pattern id="grid" width="${gridW}" height="${gridH}" patternUnits="userSpaceOnUse">
+            <path d="M ${gridW} 0 L 0 0 0 ${gridH}" fill="none" stroke="#f1f5f9" stroke-width="1" />
+          </pattern>
+        </defs>
+        <rect x="${getSvgX(0)}" y="${getSvgY(maxGrid)}" width="${plotWidth}" height="${plotHeight}" fill="url(#grid)" />
+        `;
+
+        for (let i = 0; i <= maxGrid; i++) {
+          if (i > 0) {
+            svgContent += `
+              <line x1="${getSvgX(i)}" y1="${getSvgY(0)}" x2="${getSvgX(i)}" y2="${getSvgY(maxGrid)}" stroke="${i === xVal ? '#bfdbfe' : '#e2e8f0'}" stroke-width="${i === xVal ? 2 : 1}" />
+              <line x1="${getSvgX(0)}" y1="${getSvgY(i)}" x2="${getSvgX(maxGrid)}" y2="${getSvgY(i)}" stroke="${i === yVal ? '#bfdbfe' : '#e2e8f0'}" stroke-width="${i === yVal ? 2 : 1}" />
+            `;
+          }
+          svgContent += `
+            <text x="${getSvgX(i)}" y="${getSvgY(0) + 24}" font-size="16" text-anchor="middle" fill="${i === xVal ? '#2563eb' : '#64748b'}" font-weight="${i === xVal ? 'bold' : 'normal'}">${i}</text>
+            <text x="${getSvgX(0) - 16}" y="${getSvgY(i) + 5}" font-size="16" text-anchor="end" fill="${i === yVal ? '#2563eb' : '#64748b'}" font-weight="${i === yVal ? 'bold' : 'normal'}">${i}</text>
+          `;
+        }
+
+        svgContent += `
+          <line x1="${getSvgX(0)}" y1="${getSvgY(0)}" x2="${getSvgX(maxGrid + 0.3)}" y2="${getSvgY(0)}" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)" />
+          <line x1="${getSvgX(0)}" y1="${getSvgY(0)}" x2="${getSvgX(0)}" y2="${getSvgY(maxGrid + 0.3)}" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)" />
+
+          <line x1="${getSvgX(0)}" y1="${getSvgY(yVal)}" x2="${getSvgX(xVal)}" y2="${getSvgY(yVal)}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4" />
+          <line x1="${getSvgX(xVal)}" y1="${getSvgY(0)}" x2="${getSvgX(xVal)}" y2="${getSvgY(yVal)}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4" />
+
+          <line x1="${getSvgX(0)}" y1="${getSvgY(0)}" x2="${getSvgX(xVal * progress)}" y2="${getSvgY(0)}" stroke="#3b82f6" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+          <line x1="${getSvgX(0)}" y1="${getSvgY(0)}" x2="${getSvgX(0)}" y2="${getSvgY(yVal * progress)}" stroke="#3b82f6" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+          <line x1="${getSvgX(0)}" y1="${getSvgY(0)}" x2="${getSvgX(xVal * progress)}" y2="${getSvgY(yVal * progress)}" stroke="#ef4444" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+
+          <g opacity="${progress === 0 ? 1 : 0.4}" transform="translate(${getSvgX(0)}, ${getSvgY(0)})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">0</text>
+          </g>
+          <g transform="translate(${getSvgX(xVal * progress)}, ${getSvgY(0)})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">1</text>
+          </g>
+          <g transform="translate(${getSvgX(0)}, ${getSvgY(yVal * progress)})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">2</text>
+          </g>
+          <g transform="translate(${getSvgX(xVal * progress)}, ${getSvgY(yVal * progress)})">
+            <circle r="22" fill="#ef4444" stroke="white" stroke-width="2" />
+            <text y="7" font-size="18" text-anchor="middle" fill="white" font-weight="bold">3</text>
+          </g>
+        `;
+
+        if (progress === 1) {
+          svgContent += `
+            <g class="animate-pulse">
+              <circle cx="${getSvgX(xVal)}" cy="${getSvgY(yVal)}" r="30" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="6 4" />
+              <text x="${getSvgX(xVal)}" y="${getSvgY(yVal) - 40}" font-size="20" text-anchor="middle" fill="#d97706" font-weight="bold" class="drop-shadow-sm">ゴール！</text>
+              <g transform="translate(${getSvgX(xVal / 2)}, ${getSvgY(yVal / 2)}) rotate(${angle2d})">
+                <rect x="-40" y="-30" width="80" height="26" fill="white" fill-opacity="0.85" rx="6" />
+                <text x="0" y="-10" font-size="24" fill="#ef4444" font-weight="bold" text-anchor="middle">√${squaredSum}</text>
+              </g>
+            </g>
+          `;
+        }
+      } else {
+        // 3D モード
+        svgContent += `</defs>`;
+        const scale3D = 110;
+        const originX3D = 70;
+        const originY3D = 530;
+        
+        const getProj = (x, y, z) => {
+          const angle = Math.PI / 6;
+          const depthScale = 0.6;
+          const px = originX3D + x * scale3D + y * scale3D * Math.cos(angle) * depthScale;
+          const py = originY3D - z * scale3D - y * scale3D * Math.sin(angle) * depthScale;
+          return { x: px, y: py };
+        };
+
+        const v000 = getProj(0, 0, 0);
+        const vx00 = getProj(xVal, 0, 0);
+        const v0y0 = getProj(0, yVal, 0);
+        const v00z = getProj(0, 0, zVal);
+        const vxy0 = getProj(xVal, yVal, 0);
+        const vx0z = getProj(xVal, 0, zVal);
+        const v0yz = getProj(0, yVal, zVal);
+        const vxyz = getProj(xVal, yVal, zVal);
+
+        const dx3d = vxyz.x - v000.x;
+        const dy3d = vxyz.y - v000.y;
+        const angle3d = (Math.atan2(dy3d, dx3d) * 180) / Math.PI;
+        const squaredSum = xVal * xVal + yVal * yVal + zVal * zVal;
+
+        const pXAxis = getProj(maxGrid + 0.5, 0, 0);
+        const pYAxis = getProj(0, maxGrid + 0.5, 0);
+        const pZAxis = getProj(0, 0, maxGrid + 0.5);
+        const pXExt = getProj(maxGrid + 0.3, 0, 0);
+        const pYExt = getProj(0, maxGrid + 0.3, 0);
+        const pZExt = getProj(0, 0, maxGrid + 0.3);
+
+        const drone1 = getProj(xVal*progress, 0, 0);
+        const drone2 = getProj(0, yVal*progress, 0);
+        const drone3 = getProj(0, 0, zVal*progress);
+        const drone4 = getProj(xVal*progress, yVal*progress, zVal*progress);
+
+        svgContent += `
+          <text x="${pXAxis.x}" y="${pXAxis.y}" font-size="16" fill="#64748b" font-weight="bold">x (横)</text>
+          <text x="${pYAxis.x}" y="${pYAxis.y}" font-size="16" fill="#64748b" font-weight="bold">y (奥)</text>
+          <text x="${pZAxis.x}" y="${pZAxis.y - 10}" font-size="16" fill="#64748b" font-weight="bold" text-anchor="middle">z (高)</text>
+
+          <line x1="${v000.x}" y1="${v000.y}" x2="${v0y0.x}" y2="${v0y0.y}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" />
+          <line x1="${v0y0.x}" y1="${v0y0.y}" x2="${vxy0.x}" y2="${vxy0.y}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" />
+          <line x1="${v0y0.x}" y1="${v0y0.y}" x2="${v0yz.x}" y2="${v0yz.y}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" />
+
+          <line x1="${v000.x}" y1="${v000.y}" x2="${vx00.x}" y2="${vx00.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${vx00.x}" y1="${vx00.y}" x2="${vxy0.x}" y2="${vxy0.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${v000.x}" y1="${v000.y}" x2="${v00z.x}" y2="${v00z.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${vx00.x}" y1="${vx00.y}" x2="${vx0z.x}" y2="${vx0z.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${vxy0.x}" y1="${vxy0.y}" x2="${vxyz.x}" y2="${vxyz.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${v00z.x}" y1="${v00z.y}" x2="${vx0z.x}" y2="${vx0z.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${vx0z.x}" y1="${vx0z.y}" x2="${vxyz.x}" y2="${vxyz.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${v00z.x}" y1="${v00z.y}" x2="${v0yz.x}" y2="${v0yz.y}" stroke="#64748b" stroke-width="2" />
+          <line x1="${v0yz.x}" y1="${v0yz.y}" x2="${vxyz.x}" y2="${vxyz.y}" stroke="#64748b" stroke-width="2" />
+
+          <line x1="${vx00.x}" y1="${vx00.y}" x2="${pXExt.x}" y2="${pXExt.y}" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+          <line x1="${v0y0.x}" y1="${v0y0.y}" x2="${pYExt.x}" y2="${pYExt.y}" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+          <line x1="${v00z.x}" y1="${v00z.y}" x2="${pZExt.x}" y2="${pZExt.y}" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+
+          <line x1="${v000.x}" y1="${v000.y}" x2="${drone1.x}" y2="${drone1.y}" stroke="#3b82f6" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+          <line x1="${v000.x}" y1="${v000.y}" x2="${drone2.x}" y2="${drone2.y}" stroke="#3b82f6" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+          <line x1="${v000.x}" y1="${v000.y}" x2="${drone3.x}" y2="${drone3.y}" stroke="#3b82f6" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+          <line x1="${v000.x}" y1="${v000.y}" x2="${drone4.x}" y2="${drone4.y}" stroke="#ef4444" stroke-width="10" opacity="0.3" stroke-linecap="round" />
+
+          <g opacity="${progress === 0 ? 1 : 0.4}" transform="translate(${v000.x}, ${v000.y})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">0</text>
+          </g>
+          <g transform="translate(${drone1.x}, ${drone1.y})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">1</text>
+          </g>
+          <g transform="translate(${drone2.x}, ${drone2.y})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">2</text>
+          </g>
+          <g transform="translate(${drone3.x}, ${drone3.y})">
+            <circle r="18" fill="#3b82f6" stroke="white" stroke-width="2" />
+            <text y="6" font-size="16" text-anchor="middle" fill="white" font-weight="bold">3</text>
+          </g>
+          <g transform="translate(${drone4.x}, ${drone4.y})">
+            <circle r="22" fill="#ef4444" stroke="white" stroke-width="2" />
+            <text y="7" font-size="18" text-anchor="middle" fill="white" font-weight="bold">4</text>
+          </g>
+        `;
+
+        if (progress === 1) {
+          svgContent += `
+            <g class="animate-pulse">
+              <circle cx="${vxyz.x}" cy="${vxyz.y}" r="30" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="6 4" />
+              <text x="${vxyz.x}" y="${vxyz.y - 40}" font-size="20" text-anchor="middle" fill="#d97706" font-weight="bold" class="drop-shadow-sm">ゴール！</text>
+              <g transform="translate(${v000.x + dx3d / 2}, ${v000.y + dy3d / 2}) rotate(${angle3d})">
+                <rect x="-40" y="-30" width="80" height="26" fill="white" fill-opacity="0.85" rx="6" />
+                <text x="0" y="-10" font-size="24" fill="#ef4444" font-weight="bold" text-anchor="middle">√${squaredSum}</text>
+              </g>
+            </g>
+          `;
+        }
+      }
+
+      els.canvasSvg.innerHTML = svgContent;
+    }
+
+    // 起動時の初期化実行
+    init();
+  </script>
+</body>
+</html>
